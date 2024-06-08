@@ -1,6 +1,7 @@
-FROM gitpod/workspace-base
+FROM mcr.microsoft.com/devcontainers/miniconda 
 
-USER root
+# not sure if this needs to be set explicitly
+# USER root
 
 # Install util tools.
 # software-properties-common is needed to add ppa support for Apptainer installation
@@ -19,28 +20,41 @@ RUN apt-get update --quiet && \
 
 # Taken from: https://github.com/nf-core/tools/blob/master/nf_core/gitpod/gitpod.Dockerfile
 # Install Apptainer (Singularity)
-RUN add-apt-repository -y ppa:apptainer/ppa && \
-    apt-get update --quiet && \
-    apt install -y apptainer
+# RUN add-apt-repository -y ppa:apptainer/ppa && \
+#     apt-get update --quiet && \
+#     apt install -y apptainer
+
+run tmpdir=$(mktemp -d) && \
+    cd $tmpdir && \ 
+    wget -q https://github.com/apptainer/apptainer/releases/download/v1.3.2/apptainer_1.3.2_amd64.deb && \
+    apt install -y $tmpdir/apptainer_1.3.2_amd64.deb && \
+    rm -rf $tmpdir
+
+
+  
 
 # Install Conda
-RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \ 
-    bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/conda && \
-    rm Miniconda3-latest-Linux-x86_64.sh
+# RUN wget --quiet https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \ 
+#     bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/conda && \
+#     rm Miniconda3-latest-Linux-x86_64.sh
 
-ENV PATH="/opt/conda/bin:$PATH"
+# RUN wget --quiet  && \ 
+#     bash Miniconda3-latest-Linux-x86_64.sh -b -p /opt/conda && \
+#     rm Miniconda3-latest-Linux-x86_64.sh
+# ENV PATH="/opt/conda/bin:$PATH"
 
 # Ensure conda can use the cache directories without permission issues
-RUN mkdir -p /home/gitpod/.cache/conda && \
-    chown -R gitpod:gitpod /home/gitpod/.cache /opt/conda /workspace
+# RUN mkdir -p /home/gitpod/.cache/conda && \
+#     chown -R gitpod:gitpod /home/gitpod/.cache /opt/conda /workspace
 
 # Change user to gitpod
-USER gitpod
+# USER vscode
 
 # Uncomment if we need to pin the Nextflow version
 ENV NXF_EDGE=1
 ENV NXF_VER=24.02.0-edge
 
+RUN conda update conda
 # Install nextflow, nf-core, Mamba, and pytest-workflow
 RUN conda config --add channels defaults && \
     conda config --add channels bioconda && \
@@ -65,12 +79,17 @@ RUN conda config --add channels defaults && \
     conda clean --all --force-pkgs-dirs --yes
 
 
+RUN usermod -a -G conda vscode
+
+
 # Update Nextflow
 RUN nextflow self-update && nextflow -version
 
 RUN unset JAVA_TOOL_OPTIONS
 
 RUN export PS1='\t -> '
+
+RUN chown -R vscode:vscode /opt/conda
 
 # Set the entrypoint to bash
 ENTRYPOINT ["bash"]
