@@ -4,6 +4,8 @@ nextflow.enable.dsl=2
  * Define the QUANTIFICATION process
  */
 process QUANTIFICATION {
+    conda "salmon"
+
     input:
     path salmon_index
     tuple val(sample_id), path(reads)
